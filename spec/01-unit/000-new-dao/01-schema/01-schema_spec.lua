@@ -1193,6 +1193,24 @@ describe("schema", function()
                     { f = { type = "number" }, },
                   },
                   default = { f = 123 } }, },
+          { nested_record = {
+              type = "record",
+              default = {
+                r = {
+                  a = "nr",
+                  b = 123,
+                }
+              },
+              fields = {
+                { r = {
+                    type = "record",
+                    fields = {
+                      { a = { type = "string" } },
+                      { b = { type = "number" } }
+                    }
+                } }
+              }
+          } }
         }
       })
       check_all_types_covered(Test.fields)
@@ -1205,6 +1223,7 @@ describe("schema", function()
       assert.same("foo",                data.f)
       assert.same({ foo = 1, bar = 2 }, data.g)
       assert.same({ f = 123 },          data.h)
+      assert.same({ r = { a = "nr", b = 123, }}, data.nested_record)
     end)
 
     it("honors 'false' as a default", function()

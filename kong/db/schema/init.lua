@@ -453,6 +453,24 @@ Schema.entity_checkers = {
 }
 
 
+local function memoize(fn)
+  local cache = setmetatable({}, { __mode = "k" })
+  return function(k)
+    if cache[k] then
+      return cache[k]
+    end
+    local v = fn(k)
+    cache[k] = v
+    return v
+  end
+end
+
+
+local get_field_schema = memoize(function(field)
+  return Schema.new(field)
+end)
+
+
 -- Forward declaration
 local validate_fields
 
@@ -549,10 +567,10 @@ function Schema:validate_field(field, value)
       return nil, validation_errors.SCHEMA_MISSING_ATTRIBUTE:format("fields")
     end
 
-    local subschema = Schema.new(field)
+    local field_schema = get_field_schema(field)
     -- TODO return nested table or string?
-    local copy = subschema:process_auto_fields(value, "insert")
-    local ok, err = subschema:validate(copy)
+    local copy = field_schema:process_auto_fields(value, "insert")
+    local ok, err = field_schema:validate(copy)
     if not ok then
       return nil, err
     end
@@ -667,7 +685,7 @@ end
 -- @param entity The entity object where key `k` is missing.
 local function handle_missing_field(k, field, entity)
   if field.default ~= nil then
-    entity[k] = field.default
+    entity[k] = tablex.deepcopy(field.default)
     return
   end
 
@@ -967,7 +985,9 @@ end
 
 --- Given a table, update its fields whose schema
 -- definition declares them as `auto = true`,
--- based on its CRUD operation context.
+-- based on its CRUD operation context, and set
+-- defaults for missing values when the CRUD context
+-- is "insert".
 -- This function encapsulates various "smart behaviors"
 -- for value creation and update.
 -- @param input The table containing data to be processed.
@@ -1003,6 +1023,11 @@ function Schema:process_auto_fields(input, context)
         output[key] = make_array(field_value)
       elseif field_type == "set" then
         output[key] = make_set(field_value)
+      elseif field_type == "record" then
+        if field_value ~= null then
+          local field_schema = get_field_schema(field)
+          output[key] = field_schema:process_auto_fields(field_value, context)
+        end
       end
 
     elseif context ~= "update" then
