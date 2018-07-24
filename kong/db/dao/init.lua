@@ -149,7 +149,65 @@ local function validate_options_value(options, schema, context)
 end
 
 
+local function deep_compare(a, b)
+  if a == b then
+    return true
+  end
+
+  for k, ak in pairs(a) do
+    local bk = b[k]
+    if type(ak) == "table" and type(bk) == "table" then
+      if not deep_compare(ak, bk) then
+        return false
+      end
+    elseif ak ~= bk then
+      return false
+    end
+  end
+  return true
+end
+
+
+local function compare_fields(a, b, fields)
+  if a == b then
+    return true
+  end
+
+  for _, k in ipairs(fields) do
+    local ak = a[k]
+    local bk = b[k]
+    if type(ak) == "table" and type(bk) == "table" then
+      if not deep_compare(ak, bk) then
+        return false
+      end
+    elseif ak ~= bk then
+      return false
+    end
+  end
+  return true
+end
+
+
 DAO.entity_checkers = {
+  composite_unique = function(self, entity, field_names)
+    -- FIXME do not iterate all, filter by fields listed in `field_names`
+    local entity_pk = self.schema:extract_pk_values(entity)
+
+    for item in self:each() do
+
+      local item_pk = self.schema:extract_pk_values(item)
+
+      if (not deep_compare(entity_pk, item_pk))
+         and compare_fields(item, entity, field_names) then
+        local err_data = {}
+        for _, field_name in ipairs(field_names) do
+          err_data[field_name] = item[field_name]
+        end
+        return false, self.errors:unique_violation(err_data)
+      end
+    end
+    return true
+  end
 }
 
 
