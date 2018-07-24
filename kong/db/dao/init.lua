@@ -149,6 +149,40 @@ local function validate_options_value(options, schema, context)
 end
 
 
+DAO.entity_checkers = {
+}
+
+
+local function check_entity_constraints(self, entity)
+  if not self.schema.entity_checks then
+    return true
+  end
+
+  for _, check in ipairs(self.schema.entity_checks) do
+    local name = next(check)
+    local data = check[name]
+
+    for _, field_name in ipairs(data) do
+      if entity[field_name] == nil then
+        goto continue
+      end
+    end
+
+    local fn = self.entity_checkers[name]
+    if fn then
+      local ok, err = fn(self, entity, data)
+      if not ok then
+        return nil, err
+      end
+    end
+
+    ::continue::
+  end
+
+  return true
+end
+
+
 local function generate_foreign_key_methods(schema)
   local methods = {}
 
@@ -285,6 +319,12 @@ local function generate_foreign_key_methods(schema)
           end
         end
 
+        local ok, err_t = check_entity_constraints(self, entity_to_update)
+        if not ok then
+          return nil, tostring(err_t), err_t
+        end
+
+
         local row, err_t = self.strategy:update_by_field(name, unique_value,
                                                          entity_to_update, options)
         if not row then
@@ -326,6 +366,11 @@ local function generate_foreign_key_methods(schema)
         ok, errors = self.schema:validate_upsert(entity_to_upsert)
         if not ok then
           local err_t = self.errors:schema_violation(errors)
+          return nil, tostring(err_t), err_t
+        end
+
+        local ok, err_t = check_entity_constraints(self, entity_to_upsert)
+        if not ok then
           return nil, tostring(err_t), err_t
         end
         entity_to_upsert[name] = nil
@@ -595,6 +640,11 @@ function DAO:insert(entity, options)
     end
   end
 
+  local ok, err_t = check_entity_constraints(self, entity_to_insert)
+  if not ok then
+    return nil, tostring(err_t), err_t
+  end
+
   local row, err_t = self.strategy:insert(entity_to_insert, options)
   if not row then
     return nil, tostring(err_t), err_t
@@ -645,6 +695,11 @@ function DAO:update(primary_key, entity, options)
     end
   end
 
+  local ok, err_t = check_entity_constraints(self, entity_to_update)
+  if not ok then
+    return nil, tostring(err_t), err_t
+  end
+
   local row, err_t = self.strategy:update(primary_key, entity_to_update, options)
   if not row then
     return nil, tostring(err_t), err_t
@@ -693,6 +748,11 @@ function DAO:upsert(primary_key, entity, options)
       local err_t = self.errors:invalid_options(errors)
       return nil, tostring(err_t), err_t
     end
+  end
+
+  local ok, err_t = check_entity_constraints(self, entity_to_upsert)
+  if not ok then
+    return nil, tostring(err_t), err_t
   end
 
   local row, err_t = self.strategy:upsert(primary_key, entity_to_upsert, options)
