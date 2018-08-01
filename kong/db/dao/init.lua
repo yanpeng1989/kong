@@ -266,7 +266,7 @@ local function generate_foreign_key_methods(schema)
           validate_options_type(options)
         end
 
-        local ok, errors = self.schema:validate_primary_key(foreign_key)
+        local ok, errors = self.schema:validate_field(field, foreign_key)
         if not ok then
           local err_t = self.errors:invalid_primary_key(errors)
           return nil, tostring(err_t), err_t
@@ -293,7 +293,6 @@ local function generate_foreign_key_methods(schema)
         end
 
         local strategy = self.strategy
-
         local rows, err_t, new_offset = strategy[method_name](strategy,
                                                               foreign_key,
                                                               size, offset)
