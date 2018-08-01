@@ -866,7 +866,7 @@ function _mt:each(size, options)
     if i > size and offset then
       i, rows, err, offset = 1, self:page(size, offset, options)
       if not rows then
-        return nil, err
+        return false, err
       end
 
       page = page + 1

@@ -736,7 +736,7 @@ do
 
       local rows, err_t, next_offset = strategy:page(size, offset)
       if not rows then
-        return nil, err_t
+        return false, err_t
       end
 
       self.rows = rows

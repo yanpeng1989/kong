@@ -193,7 +193,10 @@ DAO.entity_checkers = {
     -- FIXME do not iterate all, filter by fields listed in `field_names`
     local entity_pk = self.schema:extract_pk_values(entity)
 
-    for item in self:each() do
+    for item, err in self:each() do
+      if err then
+        return false, self.errors:database_error(err)
+      end
 
       local item_pk = self.schema:extract_pk_values(item)
 
@@ -645,17 +648,22 @@ function DAO:each(size, options)
 
   local next_row = self.strategy:each(size, options)
 
+  local failed = false -- avoid infinite loop if error is not caught
   return function()
     local err_t
+    if failed then
+      return nil
+    end
     local row, err, page = next_row()
     if not row then
       if err then
+        failed = true
         if type(err) == "table" then
-          return nil, tostring(err), err
+          return false, tostring(err), err
         end
 
         err_t = self.errors:database_error(err)
-        return nil, tostring(err_t), err_t
+        return false, tostring(err_t), err_t
       end
 
       return nil
@@ -663,7 +671,8 @@ function DAO:each(size, options)
 
     row, err, err_t = self:row_to_entity(row)
     if not row then
-      return nil, err, err_t
+      failed = true
+      return false, err, err_t
     end
 
     return row, nil, page
