@@ -880,7 +880,11 @@ function _mt:each(size, options)
 end
 
 
-local _M  = {}
+local _M  = {
+  CUSTOM_STRATEGIES = {
+    plugins  = require("kong.db.strategies.postgres.plugins"),
+  }
+}
 
 
 function _M.new(connector, schema, errors)

@@ -41,6 +41,7 @@ local _M  = {
   CUSTOM_STRATEGIES = {
     services = require("kong.db.strategies.cassandra.services"),
     routes   = require("kong.db.strategies.cassandra.routes"),
+    plugins  = require("kong.db.strategies.cassandra.plugins"),
   }
 }
 

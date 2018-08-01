@@ -4,6 +4,7 @@ local responses    = require "kong.tools.responses"
 local kong         = kong
 local setmetatable = setmetatable
 local ipairs       = ipairs
+local null         = ngx.null
 
 
 -- Loads a plugin config from the datastore.
@@ -13,27 +14,37 @@ local function load_plugin_into_memory(route_id,
                                        consumer_id,
                                        plugin_name,
                                        api_id)
-  local rows, err = kong.dao.plugins:find_all {
-             name = plugin_name,
-         route_id = route_id,
-       service_id = service_id,
-      consumer_id = consumer_id,
-           api_id = api_id,
-  }
+  local rows, err = kong.db.plugins:select_by_ids(plugin_name,
+                                                  route_id,
+                                                  service_id,
+                                                  consumer_id,
+                                                  api_id)
   if err then
     return nil, tostring(err)
   end
 
   if #rows > 0 then
     for _, row in ipairs(rows) do
-      if    route_id == row.route_id    and
-          service_id == row.service_id  and
-         consumer_id == row.consumer_id and
-              api_id == row.api_id      then
+      if    route_id == ((row.route    ~= null) and row.route.id    or nil) and
+          service_id == ((row.service  ~= null) and row.service.id  or nil) and
+         consumer_id == ((row.consumer ~= null) and row.consumer.id or nil) and
+              api_id == ((row.api      ~= null) and row.api.id      or nil) then
         return row
       end
     end
   end
+end
+
+
+local function null_to_nil(tbl)
+  for k, v in pairs(tbl) do
+    if type(v) == "table" then
+      tbl[k] = null_to_nil(v)
+    elseif v == null then
+      tbl[k] = nil
+    end
+  end
+  return tbl
 end
 
 
@@ -52,13 +63,13 @@ local function load_plugin_configuration(ctx,
                                          consumer_id,
                                          plugin_name,
                                          api_id)
-  local plugin_cache_key = kong.dao.plugins:cache_key(plugin_name,
-                                                            route_id,
-                                                            service_id,
-                                                            consumer_id,
-                                                            api_id)
+  local key = kong.db.plugins:cache_key(plugin_name,
+                                        route_id,
+                                        service_id,
+                                        consumer_id,
+                                        api_id)
 
-  local plugin, err = kong.cache:get(plugin_cache_key,
+  local plugin, err = kong.cache:get(key,
                                      nil,
                                      load_plugin_into_memory,
                                      route_id,
@@ -72,11 +83,12 @@ local function load_plugin_configuration(ctx,
   end
 
   if plugin ~= nil and plugin.enabled then
-    local cfg       = plugin.config or {}
-    cfg.api_id      = plugin.api_id
-    cfg.route_id    = plugin.route_id
-    cfg.service_id  = plugin.service_id
-    cfg.consumer_id = plugin.consumer_id
+    local cfg = plugin.config ~= null and null_to_nil(plugin.config) or {}
+
+    cfg.api_id      = plugin.api ~= null and plugin.api.id or nil
+    cfg.route_id    = plugin.route ~= null and plugin.route.id or nil
+    cfg.service_id  = plugin.service ~= null and plugin.service.id or nil
+    cfg.consumer_id = plugin.consumer ~= null and plugin.consumer.id or nil
 
     return cfg
   end
@@ -97,23 +109,22 @@ local function get_next(self)
 
   -- load the plugin configuration in early phases
   if self.access_or_cert_ctx then
-    local schema = plugin.schema or {}
 
     local api          = self.api
     local route        = self.route
     local service      = self.service
     local consumer     = ctx.authenticated_consumer
 
-    if api and schema.no_api then
+    if api and plugin.no_api then
       api = nil
     end
-    if route and schema.no_route then
+    if route and plugin.no_route then
       route = nil
     end
-    if service and schema.no_service then
+    if service and plugin.no_service then
       service = nil
     end
-    if consumer and schema.no_consumer then
+    if consumer and plugin.no_consumer then
       consumer = nil
     end
 
