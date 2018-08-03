@@ -733,13 +733,23 @@ pending("Admin API #" .. kong_config.database, function()
 
       it_content_types("creates a plugin config", function(content_type)
         return function()
+          local inputs = {
+            ["application/x-www-form-urlencoded"] = {
+              name = "key-auth",
+              ["config.key_names[1]"] = "apikey",
+              ["config.key_names[2]"] = "key",
+            },
+            ["application/json"] = {
+              name = "key-auth",
+              config = {
+                key_names = { "apikey", "key" },
+              }
+            },
+          }
           local res = assert(client:send {
             method = "POST",
             path = "/apis/" .. api.id .. "/plugins",
-            body = {
-              name = "key-auth",
-              ["config.key_names"] = "apikey,key"
-            },
+            body = inputs[content_type],
             headers = {["Content-Type"] = content_type}
           })
           local body = assert.res_status(201, res)
@@ -1238,20 +1248,28 @@ end)
 
 describe("Admin API request size", function()
   local client
+
   setup(function()
-    helpers.dao:truncate_table("apis")
-    helpers.db:truncate("plugins")
-    helpers.db:truncate("routes")
-    helpers.db:truncate("services")
+    assert(helpers.get_db_utils(kong_config.database, {
+      "apis",
+      "plugins",
+      "routes",
+      "services",
+    }))
+    assert(helpers.start_kong{
+      database = kong_config.database
+    })
   end)
+
+  teardown(function()
+    helpers.stop_kong()
+  end)
+
   before_each(function()
-    assert(helpers.dao:run_migrations())
-    assert(helpers.start_kong())
     client = assert(helpers.admin_client())
   end)
   after_each(function()
     if client then client:close() end
-    helpers.stop_kong()
   end)
 
   it("handles req bodies < 10MB", function()
