@@ -275,7 +275,6 @@ describe("Admin API: #" .. kong_config.database, function()
             body = assert.res_status(400, res)
             local json = cjson.decode(body)
             assert.same({
-              ["@entity"] = { [[failed conditional validation given value of field 'hash_on']] },
               hash_on_header = "bad header name 'not a <> valid <> header name', allowed characters are A-Z, a-z, 0-9, '_', and '-'",
             }, json.fields)
 
@@ -294,7 +293,6 @@ describe("Admin API: #" .. kong_config.database, function()
             body = assert.res_status(400, res)
             local json = cjson.decode(body)
             assert.same({
-              ["@entity"] = { [[failed conditional validation given value of field 'hash_fallback']] },
               hash_fallback_header = "bad header name 'not a <> valid <> header name', allowed characters are A-Z, a-z, 0-9, '_', and '-'",
             }, json.fields)
 
@@ -388,7 +386,6 @@ describe("Admin API: #" .. kong_config.database, function()
             body = assert.res_status(400, res)
             local json = cjson.decode(body)
             assert.same({
-              ["@entity"] = { [[failed conditional validation given value of field 'hash_on']] },
               hash_on_cookie = "bad cookie name 'not a <> valid <> cookie name', allowed characters are A-Z, a-z, 0-9, '_', and '-'",
             }, json.fields)
 
@@ -423,7 +420,6 @@ describe("Admin API: #" .. kong_config.database, function()
             body = assert.res_status(400, res)
             local json = cjson.decode(body)
             assert.same({
-              ["@entity"] = { [[failed conditional validation given value of field 'hash_fallback']] },
               hash_on_cookie = "bad cookie name 'not a <> valid <> cookie name', allowed characters are A-Z, a-z, 0-9, '_', and '-'",
             }, json.fields)
 
