@@ -1,13 +1,25 @@
 local helpers = require "spec.helpers"
+local Errors = require "kong.db.errors"
 local cjson = require "cjson"
 
-describe("Deprecated plugin API" , function()
+for _, strategy in helpers.each_strategy() do
+
+describe("Deprecated plugin API #" .. strategy, function()
   local client
+  local db
 
   describe("deprecated not enabled plugins" , function()
     setup(function()
-      assert(helpers.dao:run_migrations())
-      assert(helpers.start_kong())
+      local _
+      _, db = helpers.get_db_utils(strategy, {
+        "plugins",
+      }, {
+        "admin-api-post-process"
+      })
+      assert(helpers.start_kong({
+        database = strategy,
+        nginx_conf = "spec/fixtures/custom_nginx.template",
+      }))
       client = helpers.admin_client()
     end)
     teardown(function()
@@ -15,6 +27,7 @@ describe("Deprecated plugin API" , function()
         client:close()
       end
       helpers.stop_kong()
+      db.plugins:truncate()
     end)
 
     describe("POST" , function()
@@ -29,7 +42,14 @@ describe("Deprecated plugin API" , function()
         })
         local body = assert.res_status(400 , res)
         local json = cjson.decode(body)
-        assert.is_equal("plugin 'admin-api-post-process' not enabled; add it to the 'plugins' configuration property", json.config)
+        assert.same({
+          code = Errors.codes.SCHEMA_VIOLATION,
+          fields = {
+            name = "plugin 'admin-api-post-process' not enabled; add it to the 'plugins' configuration property"
+          },
+          message = "schema violation (name: plugin 'admin-api-post-process' not enabled; add it to the 'plugins' configuration property)",
+          name = "schema violation",
+        }, json)
       end)
     end)
   end)
@@ -37,6 +57,8 @@ describe("Deprecated plugin API" , function()
   describe("deprecated enabled plugins" , function()
     setup(function()
       assert(helpers.start_kong({
+        database = strategy,
+        nginx_conf = "spec/fixtures/custom_nginx.template",
         plugins = "bundled, admin-api-post-process"
       }))
       client = helpers.admin_client()
@@ -46,6 +68,7 @@ describe("Deprecated plugin API" , function()
         client:close()
       end
       helpers.stop_kong()
+      db.plugins:truncate()
     end)
 
     describe("GET" , function()
@@ -63,3 +86,5 @@ describe("Deprecated plugin API" , function()
     end)
   end)
 end)
+
+end

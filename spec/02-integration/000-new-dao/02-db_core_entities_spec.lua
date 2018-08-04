@@ -15,7 +15,11 @@ for _, strategy in helpers.each_strategy() do
     local db, bp, dao
 
     setup(function()
-      bp, db, dao = helpers.get_db_utils(strategy)
+      bp, db, dao = helpers.get_db_utils(strategy, {
+        "routes",
+        "services",
+        "basicauth_credentials",
+      })
     end)
 
     --[[
@@ -25,7 +29,7 @@ for _, strategy in helpers.each_strategy() do
     db.routes:select(primary_key)
     db.routes:update(primary_key, entity)
     db.routes:delete(primary_key)
-    db.routes:for_service(service_id)
+    db.routes:for_service(service.id)
     --]]
 
     describe("Routes", function()

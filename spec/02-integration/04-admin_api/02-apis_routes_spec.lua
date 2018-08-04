@@ -30,14 +30,14 @@ pending("Admin API #" .. kong_config.database, function()
   teardown(function()
     helpers.stop_kong()
     dao:truncate_table("apis")
-    dao:truncate_table("plugins")
+    db:truncate("plugins")
     db:truncate("routes")
     db:truncate("services")
   end)
 
   before_each(function()
     dao:truncate_table("apis")
-    dao:truncate_table("plugins")
+    db:truncate("plugins")
     db:truncate("routes")
     db:truncate("services")
   end)
@@ -907,7 +907,7 @@ pending("Admin API #" .. kong_config.database, function()
         return function()
           local plugin = assert(dao.plugins:insert {
             name = "key-auth",
-            api_id = api.id,
+            api = { id = api.id },
             config = {hide_credentials = true}
           })
           assert.True(plugin.config.hide_credentials)
@@ -940,7 +940,7 @@ pending("Admin API #" .. kong_config.database, function()
         return function()
           local plugin = assert(dao.plugins:insert {
             name = "key-auth",
-            api_id = api.id
+            api = { id = api.id },
           })
           assert.same({"apikey"}, plugin.config.key_names)
 
@@ -964,7 +964,7 @@ pending("Admin API #" .. kong_config.database, function()
         return function()
           local plugin = assert(dao.plugins:insert {
             name = "key-auth",
-            api_id = api.id
+            api = { id = api.id },
           })
           assert.True(plugin.enabled)
 
@@ -1018,7 +1018,7 @@ pending("Admin API #" .. kong_config.database, function()
       it("retrieves the first page", function()
         assert(dao.plugins:insert {
           name = "key-auth",
-          api_id = api.id
+          api = { id = api.id },
         })
         local res = assert(client:send {
           method = "GET",
@@ -1046,7 +1046,7 @@ pending("Admin API #" .. kong_config.database, function()
       before_each(function()
         plugin = assert(dao.plugins:insert {
           name = "key-auth",
-          api_id = api.id
+          api = { id = api.id },
         })
       end)
 
@@ -1240,7 +1240,7 @@ describe("Admin API request size", function()
   local client
   setup(function()
     helpers.dao:truncate_table("apis")
-    helpers.dao:truncate_table("plugins")
+    helpers.db:truncate("plugins")
     helpers.db:truncate("routes")
     helpers.db:truncate("services")
   end)
