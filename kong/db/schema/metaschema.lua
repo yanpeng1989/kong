@@ -316,6 +316,12 @@ local MetaSchema = Schema.new({
       },
     },
     {
+      subschema_error = {
+        type = "string",
+        nilable = true,
+      },
+    },
+    {
       legacy = {
         type = "boolean",
         nilable = true,
