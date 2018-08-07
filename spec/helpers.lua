@@ -7,7 +7,7 @@
 
 local BIN_PATH = "bin/kong"
 local TEST_CONF_PATH = "spec/kong_tests.conf"
-local CUSTOM_PLUGIN_PATH = "./spec/fixtures/custom_plugins/?.lua"
+local CUSTOM_PLUGIN_PATH = "./spec/fixtures/custom_plugins/?.lua;./?/init.lua"
 local MOCK_UPSTREAM_PROTOCOL = "http"
 local MOCK_UPSTREAM_SSL_PROTOCOL = "https"
 local MOCK_UPSTREAM_HOST = "127.0.0.1"
