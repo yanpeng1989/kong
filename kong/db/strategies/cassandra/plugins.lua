@@ -46,6 +46,7 @@ function Plugins:select_by_ids(name, route_id, service_id, consumer_id, api_id)
                    "consumer_id, config, enabled FROM plugins WHERE " ..
                    concat(exp, " AND ") ..
                    " ALLOW FILTERING"
+print(">>> NEW CQL: ITERATE WITH {", select_q, "} ON ", require'inspect'(args))
   for rows, err in cluster:iterate(select_q, args) do
     if err then
       return nil,
