@@ -22,7 +22,7 @@ function Plugins:select_by_ids(name, route_id, service_id, consumer_id, api_id)
   local args = {}
   if name ~= nil and name ~= null then
     insert(exp, "name = ?")
-    insert(args, cassandra.text(name))
+    insert(args, name)
   end
   if route_id ~= nil and route_id ~= null then
     insert(exp, "route_id = ?")
