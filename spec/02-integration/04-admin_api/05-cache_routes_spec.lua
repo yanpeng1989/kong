@@ -45,6 +45,7 @@ describe("Admin API /cache [#" .. strategy .. "]", function()
       proxy_client:close()
     end
 
+    os.execute("cat servroot/logs/error.log")
     helpers.stop_kong()
   end)
 
