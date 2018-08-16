@@ -59,7 +59,7 @@ function _M.new(kong_config)
     verify = kong_config.cassandra_ssl_verify,
     cafile = kong_config.lua_ssl_trusted_certificate,
     lock_timeout = 30,
-    silent = ngx.IS_CLI,
+    silent = false,
   }
 
   if ngx.IS_CLI then
@@ -533,6 +533,7 @@ function _M:find_all(table_name, tbl, schema)
     opts.prepared = false
   end
 
+print(">>> CQL: ITERATING WITH {", query, "} ON ", require'inspect'(args), " VIA ", debug.traceback())
   for rows, page_err in iter(iter_self, query, args, opts) do
     if page_err then
       err = Errors.db(page_err)
