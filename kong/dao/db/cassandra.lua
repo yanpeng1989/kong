@@ -487,7 +487,7 @@ function _M:insert(table_name, schema, model, constraints, options)
                     concat(cols, ", "),
                     concat(binds, ", "),
                     options.ttl and fmt(" USING TTL %d", options.ttl) or "")
-
+print(">>> OLD CQL INSERT: {", query, "} ON ", require'inspect'(args))
   local res, err = self:query(query, args)
   if not res then
     return nil, err
