@@ -3,7 +3,9 @@ set -e
 
 export BUSTED_ARGS="-o gtest -v --exclude-tags=flaky,ipv6"
 
-if [ "$KONG_TEST_DATABASE" == "postgres" ]; then
+if [ "$TEST_SUITE" = "pdk" ]; then
+    TEST_NGINX_RANDOMIZE=1 prove -I. -j$JOBS -r t/01-pdk
+elif [ "$KONG_TEST_DATABASE" == "postgres" ]; then
     export KONG_TEST_PG_DATABASE=travis
     export KONG_TEST_PG_USER=postgres
     export KONG_TEST_PG_DATABASE=travis
