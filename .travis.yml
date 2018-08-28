@@ -32,9 +32,12 @@ env:
     - INSTALL_CACHE=$HOME/install-cache
     - JOBS=2
   matrix:
-    - KONG_TEST_DATABASE=postgres
-    - KONG_TEST_DATABASE=cassandra CASSANDRA=2.2
-    - KONG_TEST_DATABASE=cassandra CASSANDRA=3.9
+    - TEST_SUITE=integration KONG_TEST_DATABASE=postgres
+    - TEST_SUITE=plugins KONG_TEST_DATABASE=postgres
+    - TEST_SUITE=integration KONG_TEST_DATABASE=cassandra CASSANDRA=2.2
+    - TEST_SUITE=plugins KONG_TEST_DATABASE=cassandra CASSANDRA=2.2
+    - TEST_SUITE=integration KONG_TEST_DATABASE=cassandra CASSANDRA=3.9
+    - TEST_SUITE=plugins KONG_TEST_DATABASE=cassandra CASSANDRA=3.9
     - TEST_SUITE=pdk
 
 before_install:
