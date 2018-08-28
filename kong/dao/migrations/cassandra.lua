@@ -802,6 +802,7 @@ return {
         name text,
         config text, -- serialized plugin configuration
         enabled boolean,
+        cache_key text,
         PRIMARY KEY (id)
       );
     ]],
@@ -837,6 +838,7 @@ return {
           consumer_id = "uuid",
           created_at = "timestamp",
           enabled = "boolean",
+          cache_key = "text",
         },
         partition_keys = {},
       }
@@ -852,6 +854,16 @@ return {
           consumer_id = "consumer_id",
           created_at = "created_at",
           enabled = "enabled",
+          cache_key = function(row)
+            return table.concat({
+              "plugins",
+              row.name,
+              row.route_id or "",
+              row.service_id or "",
+              row.consumer_id or "",
+              row.api_id or ""
+            }, ":")
+          end,
         })
       if err then
         return err
@@ -911,6 +923,7 @@ return {
           consumer_id = "uuid",
           created_at = "timestamp",
           enabled = "boolean",
+          cache_key = "text",
         },
         partition_keys = {},
       }
@@ -926,6 +939,7 @@ return {
           consumer_id = "uuid",
           created_at = "timestamp",
           enabled = "boolean",
+          cache_key = "text",
         },
         partition_keys = {},
       }
@@ -941,6 +955,7 @@ return {
           consumer_id = "consumer_id",
           created_at = "created_at",
           enabled = "enabled",
+          cache_key = "cache_key",
         })
       if err then
         return err
