@@ -223,7 +223,10 @@ end
 local function serialize_arg(field, arg)
   local serialized_arg
 
-  if arg == ngx.null then
+  if arg == nil then
+    serialized_arg = cassandra.unset
+
+  elseif arg == ngx.null then
     serialized_arg = cassandra.null
 
   elseif field.uuid then
