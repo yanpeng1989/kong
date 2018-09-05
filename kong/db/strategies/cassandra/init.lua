@@ -85,31 +85,34 @@ local function build_queries(self)
   local schema   = self.schema
   local n_fields = #schema.fields
   local n_pk     = #schema.primary_key
+  local composite_cache_key = schema.cache_key and #schema.cache_key > 1
 
-  local insert_columns = new_tab(n_fields, 0)
+  local select_columns = new_tab(n_fields, 0)
   for field_name, field in schema:each_field() do
     if field.type == "foreign" then
       local db_columns = self.foreign_keys_db_columns[field_name]
       for i = 1, #db_columns do
-        insert(insert_columns, db_columns[i].col_name)
+        insert(select_columns, db_columns[i].col_name)
       end
     else
-      insert(insert_columns, field_name)
+      insert(select_columns, field_name)
     end
   end
-  insert_columns = concat(insert_columns, ", ")
+  select_columns = concat(select_columns, ", ")
+  local insert_columns = select_columns
 
-  local select_columns = (schema.cache_key and #schema.cache_key > 1)
-                         and insert_columns .. ", cache_key"
-                         or insert_columns
+  local insert_bind_args = rep("?, ", n_fields):sub(1, -3)
+
+  if composite_cache_key then
+    insert_columns = select_columns .. ", cache_key"
+    insert_bind_args = insert_bind_args .. ", ?"
+  end
 
   local select_bind_args = new_tab(n_pk, 0)
   for _, field_name in self.each_pk_field() do
     insert(select_bind_args, field_name .. " = ?")
   end
   select_bind_args = concat(select_bind_args, " AND ")
-
-  local insert_bind_args = rep("?, ", n_fields):sub(1, -3)
 
   local partitioned, err = is_partitioned(self)
   if err then
@@ -224,7 +227,7 @@ local function serialize_arg(field, arg)
   local serialized_arg
 
   if arg == nil then
-    serialized_arg = cassandra.unset
+    serialized_arg = cassandra.null
 
   elseif arg == ngx.null then
     serialized_arg = cassandra.null
@@ -283,9 +286,8 @@ local function serialize_foreign_pk(db_columns, args, args_names, foreign_pk)
   for _, db_column in ipairs(db_columns) do
     local to_serialize
 
-    if foreign_pk == ngx.null then
-      to_serialize = ngx.null
-
+    if foreign_pk == ngx.null or foreign_pk == nil then
+      to_serialize = foreign_pk
     else
       to_serialize = foreign_pk[db_column.foreign_field_name]
     end
@@ -576,8 +578,9 @@ function _mt:insert(entity, options)
   -- serialize VALUES clause args
 
   for field_name, field in schema:each_field() do
+    local value = entity[field_name]
     if field.type == "foreign" then
-      local foreign_pk = entity[field_name]
+      local foreign_pk = value
 
       if foreign_pk ~= ngx.null then
         -- if given, check if this foreign entity exists
@@ -585,15 +588,18 @@ function _mt:insert(entity, options)
         if not exists then
           return nil, err_t
         end
+
+      else
+        foreign_pk = nil
       end
 
       local db_columns = self.foreign_keys_db_columns[field_name]
-      serialize_foreign_pk(db_columns, args, nil, foreign_pk)
+      serialize_foreign_pk(db_columns, args, nil, foreign_pk, true)
 
     else
       if field.unique
-        and entity[field_name] ~= ngx.null
-        and entity[field_name] ~= nil
+        and value ~= ngx.null
+        and value ~= nil
       then
         -- a UNIQUE constaint is set on this field.
         -- We unfortunately follow a read-before-write pattern in this case,
