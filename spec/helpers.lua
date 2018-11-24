@@ -287,7 +287,7 @@ local function wait_until(f, timeout)
 
   ngx.update_time()
 
-  timeout = timeout or 2
+  timeout = timeout or 5
   local tstart = ngx.time()
   local texp = tstart + timeout
   local ok, res, err
