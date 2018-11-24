@@ -543,7 +543,9 @@ local function tcp_server(port, opts, ...)
     end
   }, port, opts)
 
-  return thread:start(...)
+  local thr = thread:start(...)
+  ngx.sleep(0.01)
+  return thr
 end
 
 --- Starts a HTTP server.
